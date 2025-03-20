@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS_ID = 'docker-hub-cred'
-        DOCKERHUB_REPO = 'cindy3377/ShoppingCart'
+        DOCKERHUB_REPO = 'cindy3377/shoppingcart'
         DOCKER_IMAGE_TAG = 'latest_v1'
         // Set PATH explicitly for Jenkins
         PATH = "/usr/local/bin:$PATH"

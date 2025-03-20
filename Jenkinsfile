@@ -1,37 +1,70 @@
 pipeline {
     agent any
-
-   tools {
-        maven 'Maven 3.8.6'
+    tools {
+        maven 'Maven3'
+        jdk 'JDK 21'
     }
 
     environment {
-        DOCKER_IMAGE = 'your-image-name'
-        DOCKER_REPO = 'your-dockerhub-repo'
+        DOCKERHUB_CREDENTIALS_ID = 'docker-hub-cred'
+        DOCKERHUB_REPO = 'cindy3377/ShoppingCart'
+        DOCKER_IMAGE_TAG = 'latest_v1'
+        // Set PATH explicitly for Jenkins
+        PATH = "/usr/local/bin:$PATH"
     }
-
     stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/cindy3377/ShoppingCart.git'
+            }
+        }
         stage('Build') {
             steps {
                 sh 'mvn clean install'
             }
         }
-
         stage('Test') {
             steps {
                 sh 'mvn test'
             }
         }
-
-        stage('Docker Build & Push') {
+        stage('Code Coverage') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "docker build -t $DOCKER_IMAGE ."
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                    sh "docker tag $DOCKER_IMAGE $DOCKER_REPO/$DOCKER_IMAGE"
-                    sh "docker push $DOCKER_REPO/$DOCKER_IMAGE"
+                sh 'mvn jacoco:report'
+            }
+        }
+        stage('Publish Test Results') {
+            steps {
+                junit '**/target/surefire-reports/*.xml'
+            }
+        }
+        stage('Publish Coverage Report') {
+            steps {
+                jacoco()
+            }
+        }
+        stage('Docker Login') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                        sh 'echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USER" --password-stdin'
+                    }
                 }
             }
         }
-    }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${DOCKERHUB_REPO}:${DOCKER_IMAGE_TAG} ."
+                }
+            }
+        }
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                script {
+                    sh "docker push ${DOCKERHUB_REPO}:${DOCKER_IMAGE_TAG}"
+                }
+            }
+        }
+   }
 }

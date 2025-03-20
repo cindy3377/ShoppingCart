@@ -1,11 +1,9 @@
 pipeline {
-    agent any  // ✅ Runs on any available agent
+    agent any
 
     environment {
         DOCKER_IMAGE = 'your-image-name'
         DOCKER_REPO = 'your-dockerhub-repo'
-        DOCKER_USER = credentials('docker-hub-username')
-        DOCKER_PASS = credentials('docker-hub-password')
     }
 
     stages {
@@ -23,10 +21,12 @@ pipeline {
 
         stage('Docker Build & Push') {
             steps {
-                sh "docker build -t $DOCKER_IMAGE ."
-                sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                sh "docker tag $DOCKER_IMAGE $DOCKER_REPO/$DOCKER_IMAGE"
-                sh "docker push $DOCKER_REPO/$DOCKER_IMAGE"
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "docker build -t $DOCKER_IMAGE ."
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    sh "docker tag $DOCKER_IMAGE $DOCKER_REPO/$DOCKER_IMAGE"
+                    sh "docker push $DOCKER_REPO/$DOCKER_IMAGE"
+                }
             }
         }
     }

@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+   tools {
+        maven 'Maven 3.8.6'
+    }
+
     environment {
         DOCKER_IMAGE = 'your-image-name'
         DOCKER_REPO = 'your-dockerhub-repo'
